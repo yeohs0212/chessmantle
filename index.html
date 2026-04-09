@@ -127,6 +127,34 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
 .overlay-box h2{font-size:20px;color:var(--gold);margin-bottom:8px;}
 .overlay-box p{font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.6;}
 .help-text{font-size:11px;color:var(--text-dim);line-height:1.95;}
+
+/* ── 반응형 (태블릿/모바일) ── */
+@media(max-width:860px){
+  .game-wrap{grid-template-columns:1fr;gap:10px;}
+  .board{width:min(88vw,400px);height:min(88vw,400px);}
+  .cell{width:calc(min(88vw,400px)/8);height:calc(min(88vw,400px)/8);font-size:calc(min(88vw,400px)/8*0.6);}
+  .board-col{width:100%;}
+  
+  
+  .game-wrap>div:nth-child(2){order:1;} /* 보드 (가운데 기둥)를 1번으로 */
+  .game-wrap>div:first-child{order:2;}  /* 내 상태/손패 (왼쪽 기둥)를 보드 바로 밑으로 */
+  .game-wrap>div:nth-child(3){order:3;} /* 적 정보/보상 (오른쪽 기둥)를 맨 아래로 */
+  
+  .card{width:calc(min(88vw,400px)/7 - 6px);padding:8px 2px 6px;}
+  .card-sym{font-size:calc(min(88vw,400px)/7*0.42);}
+  .card-name{font-size:9px;}
+  .hand{gap:5px;}
+}
+
+@media(max-width:480px){
+  body{padding:8px 6px 30px;}
+  h1{font-size:17px;}
+  .subtitle{font-size:11px;margin-bottom:8px;}
+  .board{width:min(96vw,360px);height:min(96vw,360px);}
+  .cell{width:calc(min(96vw,360px)/8);height:calc(min(96vw,360px)/8);font-size:calc(min(96vw,360px)/8*0.58);}
+  .card{width:calc(min(96vw,360px)/6 - 7px);}
+  .modal-box{min-width:90vw;max-width:96vw;padding:14px 14px;}
+} 
 </style>
 </head>
 <body>
