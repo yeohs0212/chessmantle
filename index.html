@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title> Chessmantle </title>
+<title>Chessmantle (Daily)</title>
 <style>
 :root{
   --bg:#0e0c0a;--surface:#1a1612;--surface2:#221e18;
@@ -130,7 +130,7 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
 </style>
 </head>
 <body>
-<h1>CHESSMANTLE</h1>
+<h1>CHESS ROGUELIKE</h1>
 <div class="subtitle">데일리 챌린지 ♟️</div>
 
 <div class="game-wrap">
@@ -138,7 +138,6 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
     <div class="panel" style="margin-bottom:9px">
       <div class="ptitle">내 상태</div>
       <div class="stage-badge" id="stage-badge">Stage 1 / 3</div>
-      <div class="stat-row"><span>현재 턴</span><span class="stat-val info" id="current-turn" style="font-weight:bold;">0턴</span></div>
       <div class="stat-row"><span>행동력 (턴당 1)</span></div>
       <div class="ap-bar" id="ap-bar"></div>
       <div class="ctr-row">
@@ -191,8 +190,13 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
     </div>
     <div id="reward-area"></div>
     <div class="panel" style="margin-top:9px">
-      <div class="ptitle">도움말 & 튜토리얼</div>
-      <button class="btn info-btn" onclick="showHelpModal()" style="text-align:center; font-weight:bold; padding: 10px 0; font-size: 13px;">📖 게임 방법 보기</button>
+      <div class="ptitle">도움말</div>
+      <div class="help-text">
+        🎯 <b>목표: 3스테이지 클리어</b><br>
+        기물 이동/배치 = 행동력 1<br>
+        적 잡으면 카드 드로우!<br>
+        매일 자정에 맵이 초기화됩니다.
+      </div>
     </div>
   </div>
 </div>
@@ -429,7 +433,7 @@ function minimax(b,depth,alpha,beta,max){
   else{let best=Infinity;for(const mv of moves){best=Math.min(best,minimax(applyMv(b,mv),depth-1,alpha,beta,true));beta=Math.min(beta,best);if(beta<=alpha)break;}return best;}
 }
 function bestMove(b){
-  const depth = stage <= 2 ? 2 : stage <= 3 ? 3 : 4;
+  const depth = stage === 1 ? 2 : stage === 2 ? 3 : 4;
   document.getElementById('ai-depth').textContent='depth '+depth;
   const moves=legalMv(b,'enm');if(!moves.length)return null;
   for(const mv of moves){const nb=applyMv(b,mv);if(isCheck(nb,'my')&&!legalMv(nb,'my').length)return mv;}
@@ -445,8 +449,7 @@ function renderAP(){
 }
 function spendAP(){
   ap=Math.max(0,ap-1);
-  currentStageTurns++;
-  document.getElementById('current-turn').textContent = currentStageTurns + '턴'; // 화면에 현재 턴수 업데이트
+  currentStageTurns++; // 데일리용 턴수 카운트 증가
   renderAP();
   if(ap<=0&&turn==='player'&&!pending){
     clearTimeout(autoEndTimer);
@@ -641,10 +644,14 @@ function showRetryScreen(reason) {
   const d=document.createElement('div');d.className='overlay';
   
   // 오늘 날짜 구하기
+  // 오늘 날짜 구하기 (YYYY.MM.DD 포맷)
   const todayDate = new Date();
-  const dateStr = `${todayDate.getMonth()+1}/${todayDate.getDate()}`;
+  const yyyy = todayDate.getFullYear();
+  const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(todayDate.getDate()).padStart(2, '0');
+  const dateStr = `${yyyy}.${mm}.${dd}`;
   
-  // 공유할 텍스트 만들기 (현재까지의 결과)
+  // 공유할 텍스트 만들기
   let shareText = `♟️ 체스 로그라이크 데일리 (${dateStr})\n`;
   for(let i=0; i<3; i++) {
       if(i < stage-1) shareText += `🟩 Stage ${i+1}: ${stageTurnRecords[i]}턴\n`;
@@ -652,7 +659,7 @@ function showRetryScreen(reason) {
       else shareText += `⬛ Stage ${i+1}: 미도달\n`;
   }
   // ★ 주의: 아래 링크를 본인의 실제 깃허브 게임 주소로 꼭 바꿔주세요!
-  shareText += `\n[도전하러 가기] -> https://본인아이디.github.io/chess-roguelike/`; 
+  shareText += `\n[도전하러 가기] -> https://yeohs0212.github.io/chessmantle/`; 
 
   // 화면 UI 구성
   d.innerHTML=`<div class="overlay-box" style="max-width:320px; width:90%;">
@@ -773,58 +780,6 @@ function showCompressModal(){
 }
 function pickCompress(i){ closeModal();const c=graveyard.splice(i,1)[0]; addLog(`${cardDisplayName(c)} 영구 제거.`,'warn');stage++; startStage(); }
 
-/* ══════════════════════════════════
-   3. 튜토리얼 / 도움말 팝업 시스템
-══════════════════════════════════ */
-function showHelpModal() {
-  closeModal(); // 열려있는 다른 창 닫기
-  const bd = document.createElement('div');
-  bd.id = 'modal-bd';
-  bd.className = 'modal-bd';
-  bd.onclick = e => { if(e.target === bd) closeModal(); };
-  
-  bd.innerHTML = `
-    <div class="modal-box" style="max-width: 400px;">
-      <h3 style="font-size:16px; margin-bottom:15px;">📖 데일리 체스 로그라이크</h3>
-      
-      <div style="font-size:12px; color:var(--text-dim); line-height:1.7; max-height: 55vh; overflow-y:auto; padding-right:8px; text-align:left;">
-          <p><b style="color:var(--gold)">🎯 목표 (3 스테이지)</b><br>
-          매일 갱신되는 3개의 스테이지에서 살아남고, 적의 킹을 체크메이트하세요.</p>
-          
-          <hr style="border:0; border-top:1px solid var(--border2); margin:12px 0;">
-          
-          <p><b style="color:var(--blue-light)">⚡ 행동력 (AP) 시스템</b><br>
-          당신에겐 매 턴 <b>1 AP</b>가 주어집니다.<br>
-          • 보드 위 기물을 1번 움직이거나<br>
-          • 손패의 카드를 킹 주변 빈칸에 소환할 수 있습니다.<br>
-          행동력을 다 쓰면 적의 턴으로 넘어갑니다.</p>
-
-          <hr style="border:0; border-top:1px solid var(--border2); margin:12px 0;">
-          
-          <p><b style="color:var(--gold-light)">🃏 덱빌딩 & 드로우</b><br>
-          적 기물을 잡을 때마다 카드를 1장 뽑습니다.<br>
-          스테이지를 깰 때마다 새로운 카드를 덱에 추가하거나 보상을 얻을 수 있습니다.</p>
-
-          <hr style="border:0; border-top:1px solid var(--border2); margin:12px 0;">
-          
-          <p><b style="color:#d06060">⚔️ 기물 강화 </b><br>
-          <b>같은 일반 카드 3장</b>이 덱에 존재한다면 보상 화면에서 해당 기물을 영구 강화할 수 있습니다.<br>
-          강화된 카드는 특별한 능력을 가지고 있습니다!</p>
-      </div>
-      
-      <button class="modal-close" onclick="closeModal()" style="margin-top:18px; padding:10px; font-size:12px;">확인했습니다 ✓</button>
-    </div>
-  `;
-  document.body.appendChild(bd);
-}
-
-// 처음 접속한 유저에게만 튜토리얼 자동 표시
-if (!localStorage.getItem('chessRogueTutorialSeen')) {
-    setTimeout(showHelpModal, 500); // 게임 로딩 후 0.5초 뒤에 띄움
-    localStorage.setItem('chessRogueTutorialSeen', 'true');
-}
-
-
 function startStage(){
   closeModal();clearTimeout(autoEndTimer);pending=null;hideCBar();
   deck=makeDeck();hand=[];graveyard=[];
@@ -834,10 +789,7 @@ function startStage(){
   renderBoard();renderHand();updateInfo();updateCounts();
   turn='player';ap=MAX_AP;inCheck=false;lf=-1;lt=-1;
   selCard=null;selCell=null;validMoves=[];boardHistory=[];
-  
-  currentStageTurns = 0; 
-  document.getElementById('current-turn').textContent = '0턴'; // 스테이지 시작 시 0턴으로 표시
-  
+  currentStageTurns = 0; // 스테이지 턴 초기화
   renderAP(); updateKingPerksUI();
   document.getElementById('log').innerHTML=`<span class="sys">Stage ${stage} 시작. 카드 ${initDraw}장 드로우.</span>`;
   setPhase('기물을 움직이거나 카드를 배치하세요');
