@@ -642,10 +642,29 @@ function endGame(win,reason){
 function showRetryScreen(reason) {
   document.querySelectorAll('.overlay,.modal-bd').forEach(e=>e.remove());
   const d=document.createElement('div');d.className='overlay';
-  d.innerHTML=`<div class="overlay-box">
+  
+  // 오늘 날짜 구하기
+  const todayDate = new Date();
+  const dateStr = `${todayDate.getMonth()+1}/${todayDate.getDate()}`;
+  
+  // 공유할 텍스트 만들기 (현재까지의 결과)
+  let shareText = `♟️ 체스 로그라이크 데일리 (${dateStr})\n`;
+  for(let i=0; i<3; i++) {
+      if(i < stage-1) shareText += `🟩 Stage ${i+1}: ${stageTurnRecords[i]}턴\n`;
+      else if(i === stage-1) shareText += `🟥 Stage ${i+1}: 패배\n`;
+      else shareText += `⬛ Stage ${i+1}: 미도달\n`;
+  }
+  // ★ 주의: 아래 링크를 본인의 실제 깃허브 게임 주소로 꼭 바꿔주세요!
+  shareText += `\n[도전하러 가기] -> https://본인아이디.github.io/chess-roguelike/`; 
+
+  // 화면 UI 구성
+  d.innerHTML=`<div class="overlay-box" style="max-width:320px; width:90%;">
       <h2>💀 게임 오버</h2>
-      <p style="color:var(--red)">${reason}</p>
-      <p>아직 포기하기엔 이릅니다!<br>오늘의 적 배치는 동일하니 다시 도전해 보세요.</p>
+      <p style="color:var(--red); font-size:12px; margin-bottom:8px;">${reason}</p>
+      
+      <textarea id="share-txt" style="width:100%;height:110px;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:8px;font-size:11px;margin-bottom:12px;border-radius:6px;resize:none" readonly>${shareText}</textarea>
+      
+      <button class="btn info-btn" onclick="copyShare()" style="margin-bottom:8px; border-color:var(--blue-light); color:var(--blue-light);">현재 기록 복사하기 📋</button>
       <button class="btn primary" onclick="restart()">처음부터 다시 도전 🔄</button>
   </div>`;
   document.body.appendChild(d);
