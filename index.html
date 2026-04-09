@@ -171,6 +171,7 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
     <div class="panel" style="margin-bottom:9px">
       <div class="ptitle">적 정보</div>
       <div class="stat-row"><span>기물 수</span><span class="stat-val danger" id="enm-count">-</span></div>
+      <div class="stat-row"><span>AI 깊이</span><span class="stat-val" id="ai-depth">depth 2</span></div>
       <div class="stat-row"><span>상태</span><span class="stat-val" id="check-state">-</span></div>
     </div>
     <div class="panel" style="margin-bottom:9px">
@@ -190,12 +191,9 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
     <div id="reward-area"></div>
     <div class="panel" style="margin-top:9px">
       <div class="ptitle">도움말</div>
-      <div class="help-text">
-        🎯 <b>목표: 3스테이지 클리어</b><br>
-        기물 이동/배치 = 행동력 1<br>
-        적 잡으면 카드 드로우!<br>
-        매일 자정에 맵이 초기화됩니다.
-      </div>
+      <div class="panel" style="margin-top:9px">
+      <div class="ptitle">도움말 & 튜토리얼</div>
+      <button class="btn info-btn" onclick="showHelpModal()" style="text-align:center; font-weight:bold; padding: 10px 0; font-size: 13px;">📖 게임 방법 보기</button>
     </div>
   </div>
 </div>
@@ -779,6 +777,57 @@ function showCompressModal(){
 }
 function pickCompress(i){ closeModal();const c=graveyard.splice(i,1)[0]; addLog(`${cardDisplayName(c)} 영구 제거.`,'warn');stage++; startStage(); }
 
+/* ══════════════════════════════════
+   3. 튜토리얼 / 도움말 팝업 시스템
+══════════════════════════════════ */
+function showHelpModal() {
+  closeModal(); // 열려있는 다른 창 닫기
+  const bd = document.createElement('div');
+  bd.id = 'modal-bd';
+  bd.className = 'modal-bd';
+  bd.onclick = e => { if(e.target === bd) closeModal(); };
+  
+  bd.innerHTML = `
+    <div class="modal-box" style="max-width: 400px;">
+      <h3 style="font-size:16px; margin-bottom:15px;">📖 데일리 체스 로그라이크</h3>
+      
+      <div style="font-size:12px; color:var(--text-dim); line-height:1.7; max-height: 55vh; overflow-y:auto; padding-right:8px; text-align:left;">
+          <p><b style="color:var(--gold)">🎯 목표 (3 스테이지)</b><br>
+          매일 갱신되는 3개의 스테이지에서 살아남고, 적의 킹을 체크메이트하세요.</p>
+          
+          <hr style="border:0; border-top:1px solid var(--border2); margin:12px 0;">
+          
+          <p><b style="color:var(--blue-light)">⚡ 행동력 (AP) 시스템</b><br>
+          당신에겐 매 턴 <b>1 AP</b>가 주어집니다.<br>
+          • 보드 위 기물을 1번 움직이거나<br>
+          • 손패의 카드를 킹 주변 빈칸에 소환할 수 있습니다.<br>
+          행동력을 다 쓰면 적의 턴으로 넘어갑니다.</p>
+
+          <hr style="border:0; border-top:1px solid var(--border2); margin:12px 0;">
+          
+          <p><b style="color:var(--gold-light)">🃏 덱빌딩 & 드로우</b><br>
+          적 기물을 잡을 때마다 카드를 1장 뽑습니다.<br>
+          스테이지를 깰 때마다 새로운 카드를 덱에 추가하거나 보상을 얻을 수 있습니다.</p>
+
+          <hr style="border:0; border-top:1px solid var(--border2); margin:12px 0;">
+          
+          <p><b style="color:#d06060">⚔️ 기물 강화 (중요)</b><br>
+          <b>같은 일반 카드 3장</b>을 모았다면 보상 화면에서 기물을 영구 강화할 수 있습니다.<br>
+          강화된 카드를 소환하면 특별한 능력이 발동합니다!</p>
+      </div>
+      
+      <button class="modal-close" onclick="closeModal()" style="margin-top:18px; padding:10px; font-size:12px;">확인했습니다 ✓</button>
+    </div>
+  `;
+  document.body.appendChild(bd);
+}
+
+// 처음 접속한 유저에게만 튜토리얼 자동 표시
+if (!localStorage.getItem('chessRogueTutorialSeen')) {
+    setTimeout(showHelpModal, 500); // 게임 로딩 후 0.5초 뒤에 띄움
+    localStorage.setItem('chessRogueTutorialSeen', 'true');
+}
+  
 function startStage(){
   closeModal();clearTimeout(autoEndTimer);pending=null;hideCBar();
   deck=makeDeck();hand=[];graveyard=[];
