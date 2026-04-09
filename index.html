@@ -433,7 +433,7 @@ function minimax(b,depth,alpha,beta,max){
   else{let best=Infinity;for(const mv of moves){best=Math.min(best,minimax(applyMv(b,mv),depth-1,alpha,beta,true));beta=Math.min(beta,best);if(beta<=alpha)break;}return best;}
 }
 function bestMove(b){
-  const depth = stage <= 2 ? 2 : stage <= 4 ? 3 : 4;
+  const depth = stage <= 2 ? 2 : stage <= 3 ? 3 : 4;
   document.getElementById('ai-depth').textContent='depth '+depth;
   const moves=legalMv(b,'enm');if(!moves.length)return null;
   for(const mv of moves){const nb=applyMv(b,mv);if(isCheck(nb,'my')&&!legalMv(nb,'my').length)return mv;}
@@ -836,24 +836,52 @@ function checkDailyLock() {
   return false;
 }
 
+// 1. 최고 기록 갱신 및 저장 함수
 function saveDailyResult(state) {
   const todayStr = dailySeed.toString();
-  localStorage.setItem('chessRogueDaily', JSON.stringify({date: todayStr, state: state, turns: stageTurnRecords, stage: stage}));
+  let newRecord = stageTurnRecords;
+  
+  if (state === 'won') {
+    const saved = JSON.parse(localStorage.getItem('chessRogueDaily') || '{}');
+    // 이미 오늘 클리어한 기록이 있다면, 턴 수를 비교해서 더 짧은(좋은) 기록만 유지!
+    if (saved.date === todayStr && saved.state === 'won') {
+       const oldTotal = saved.turns.reduce((a,b)=>a+b, 0);
+       const newTotal = stageTurnRecords.reduce((a,b)=>a+b, 0);
+       if (oldTotal <= newTotal) {
+         newRecord = saved.turns; // 기존 기록이 더 좋으면 덮어쓰지 않음
+       }
+    }
+  }
+  localStorage.setItem('chessRogueDaily', JSON.stringify({date: todayStr, state: state, turns: newRecord, stage: stage}));
 }
 
+// 2. 클리어 시 띄워줄 공유 화면 (최고 기록 표시 + 기록 단축 버튼)
 function showShareScreen(state, reason = "") {
   document.querySelectorAll('.overlay,.modal-bd').forEach(e=>e.remove());
   const d=document.createElement('div');d.className='overlay';
   const isWin = state === 'won';
   const title = isWin ? "🎉 데일리 클리어!" : "💀 데일리 게임 오버";
+  
   const todayDate = new Date();
   const dateStr = `${todayDate.getMonth()+1}/${todayDate.getDate()}`;
 
+  // 로컬 스토리지에서 최고 기록 가져오기
+  const saved = JSON.parse(localStorage.getItem('chessRogueDaily') || '{}');
+  let displayTurns = stageTurnRecords;
+  let totalTurns = 0;
+
+  if(isWin && saved.date === dailySeed.toString() && saved.state === 'won') {
+      displayTurns = saved.turns; // 갱신된 최고 기록으로 표시
+  }
+  totalTurns = displayTurns.reduce((a,b)=>a+b, 0);
+
+  // 공유 텍스트 만들기
   let shareText = `♟️ 체스 로그라이크 데일리 (${dateStr})\n`;
   if(isWin) {
-      shareText += `🟩 Stage 1: ${stageTurnRecords[0]}턴\n`;
-      shareText += `🟩 Stage 2: ${stageTurnRecords[1]}턴\n`;
-      shareText += `🟩 Stage 3: ${stageTurnRecords[2]}턴\n`;
+      shareText += `🏆 최고 기록: 총 ${totalTurns}턴\n`;
+      shareText += `🟩 Stage 1: ${displayTurns[0]}턴\n`;
+      shareText += `🟩 Stage 2: ${displayTurns[1]}턴\n`;
+      shareText += `🟩 Stage 3: ${displayTurns[2]}턴\n`;
   } else {
       for(let i=0; i<3; i++) {
           if(i < stage-1) shareText += `🟩 Stage ${i+1}: ${stageTurnRecords[i]}턴\n`;
@@ -861,14 +889,17 @@ function showShareScreen(state, reason = "") {
           else shareText += `⬛ Stage ${i+1}: 미도달\n`;
       }
   }
-  shareText += `\n[게임하러 가기] -> https://yeohs0212.github.io/chess-roguelike/`; // ★여기에 본인 깃허브 주소 입력!
+  // ★ 주의: 아래 링크를 본인의 실제 깃허브 게임 주소로 꼭 바꿔주세요!
 
-  d.innerHTML=`<div class="overlay-box">
+  d.innerHTML=`<div class="overlay-box" style="max-width:320px; width:90%;">
       <h2>${title}</h2>
-      ${reason ? `<p style="color:var(--red)">${reason}</p>` : ''}
-      <p>내일 자정에 새로운 배치가 열립니다.</p>
-      <textarea id="share-txt" style="width:100%;height:110px;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:8px;font-size:11px;margin-bottom:12px;border-radius:6px;resize:none" readonly>${shareText}</textarea>
-      <button class="btn primary" onclick="copyShare()">결과 복사하기 📋</button>
+      ${reason ? `<p style="color:var(--gold); font-size:12px; margin-bottom:8px;">${reason}</p>` : ''}
+      ${isWin ? `<p style="color:var(--text-dim); margin-bottom:10px;">더 적은 턴 수로 클리어할 수 있을까요?</p>` : '<p>내일 자정에 새로운 배치가 열립니다.</p>'}
+      
+      <textarea id="share-txt" style="width:100%;height:120px;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:8px;font-size:11px;margin-bottom:12px;border-radius:6px;resize:none" readonly>${shareText}</textarea>
+      
+      <button class="btn info-btn" onclick="copyShare()" style="margin-bottom:8px; border-color:var(--blue-light); color:var(--blue-light);">최고 기록 복사하기 📋</button>
+      <button class="btn primary" onclick="restart()">${isWin ? '기록 단축 재도전 🔄' : '처음부터 다시 도전 🔄'}</button>
   </div>`;
   document.body.appendChild(d);
 }
