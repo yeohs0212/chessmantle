@@ -433,7 +433,7 @@ function minimax(b,depth,alpha,beta,max){
   else{let best=Infinity;for(const mv of moves){best=Math.min(best,minimax(applyMv(b,mv),depth-1,alpha,beta,true));beta=Math.min(beta,best);if(beta<=alpha)break;}return best;}
 }
 function bestMove(b){
-  const depth = stage <= 2 ? 2 : stage <= 3 ? 3 : 4;
+  const depth = stage === 1 ? 2 : stage === 2 ? 3 : 4;
   document.getElementById('ai-depth').textContent='depth '+depth;
   const moves=legalMv(b,'enm');if(!moves.length)return null;
   for(const mv of moves){const nb=applyMv(b,mv);if(isCheck(nb,'my')&&!legalMv(nb,'my').length)return mv;}
