@@ -138,6 +138,7 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
     <div class="panel" style="margin-bottom:9px">
       <div class="ptitle">내 상태</div>
       <div class="stage-badge" id="stage-badge">Stage 1 / 3</div>
+      <div class="stat-row"><span>현재 턴</span><span class="stat-val info" id="current-turn" style="font-weight:bold;">0턴</span></div>
       <div class="stat-row"><span>행동력 (턴당 1)</span></div>
       <div class="ap-bar" id="ap-bar"></div>
       <div class="ctr-row">
@@ -444,7 +445,8 @@ function renderAP(){
 }
 function spendAP(){
   ap=Math.max(0,ap-1);
-  currentStageTurns++; // 데일리용 턴수 카운트 증가
+  currentStageTurns++;
+  document.getElementById('current-turn').textContent = currentStageTurns + '턴'; // 화면에 현재 턴수 업데이트
   renderAP();
   if(ap<=0&&turn==='player'&&!pending){
     clearTimeout(autoEndTimer);
@@ -832,7 +834,10 @@ function startStage(){
   renderBoard();renderHand();updateInfo();updateCounts();
   turn='player';ap=MAX_AP;inCheck=false;lf=-1;lt=-1;
   selCard=null;selCell=null;validMoves=[];boardHistory=[];
-  currentStageTurns = 0; // 스테이지 턴 초기화
+  
+  currentStageTurns = 0; 
+  document.getElementById('current-turn').textContent = '0턴'; // 스테이지 시작 시 0턴으로 표시
+  
   renderAP(); updateKingPerksUI();
   document.getElementById('log').innerHTML=`<span class="sys">Stage ${stage} 시작. 카드 ${initDraw}장 드로우.</span>`;
   setPhase('기물을 움직이거나 카드를 배치하세요');
