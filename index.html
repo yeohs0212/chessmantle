@@ -172,6 +172,7 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
     <div class="panel" style="margin-bottom:9px">
       <div class="ptitle">적 정보</div>
       <div class="stat-row"><span>기물 수</span><span class="stat-val danger" id="enm-count">-</span></div>
+      <div class="stat-row"><span>AI 깊이</span><span class="stat-val" id="ai-depth">depth 2</span></div>
       <div class="stat-row"><span>상태</span><span class="stat-val" id="check-state">-</span></div>
     </div>
     <div class="panel" style="margin-bottom:9px">
@@ -225,13 +226,13 @@ function seededRandom() {
 const ABILITIES = {
   elite_pawn: { name: '정예폰', desc: '대각선 1칸 이동 추가', extraMoves: (r,c,side,b) => { const dir = side==='my'?-1:1; const moves=[]; [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>{ const nr=r+dr*Math.abs(dir),nc=c+dc; if(nr>=0&&nr<8&&nc>=0&&nc<8&&!b[nr*8+nc])moves.push(nr*8+nc); }); return moves; } },
   charge_pawn: { name: '돌격폰', desc: '어느 위치서든 2칸 전진 가능', noStartRestrict: true },
-  // guard_pawn: { name: '수호폰', desc: '배치 시 인접 기물에 버프', aura: true },
+  guard_pawn: { name: '수호폰', desc: '배치 시 인접 기물에 버프', aura: true },
   swift_knight: { name: '신속기사', desc: 'L자 + 인접 1칸 이동 가능', extraMoves: (r,c,side,b) => { const moves=[]; [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>{ const nr=r+dr,nc=c+dc; if(nr>=0&&nr<8&&nc>=0&&nc<8){const t=b[nr*8+nc];if(!t||t.side!==side)moves.push(nr*8+nc);} }); return moves; } },
   phantom_knight: { name: '유령기사', desc: '도달 후 한 칸 추가 이동', phantom: true },
   dark_bishop: { name: '암흑주교', desc: '대각선 + 직선 1칸 이동 추가', extraMoves: (r,c,side,b) => { const moves=[]; [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>{ const nr=r+dr,nc=c+dc; if(nr>=0&&nr<8&&nc>=0&&nc<8){const t=b[nr*8+nc];if(!t||t.side!==side)moves.push(nr*8+nc);} }); return moves; } },
   twin_bishop: { name: '쌍둥이주교', desc: '두 색 칸 모두 이동 가능', extraMoves: (r,c,side,b) => { const moves=[]; const dirs=[[-1,0],[1,0],[0,-1],[0,1]]; for(const[dr,dc]of dirs){let rr=r+dr,cc=c+dc;while(rr>=0&&rr<8&&cc>=0&&cc<8){const t=b[rr*8+cc];if(t){if(t.side!==side)moves.push(rr*8+cc);break;}moves.push(rr*8+cc);rr+=dr;cc+=dc;}} return moves; } },
   fortress_rook: { name: '요새룩', desc: '3방향 공격 가능', fortress: true },
-  // rampage_rook: { name: '돌진룩', desc: '이동 경로의 적 기물도 제거', rampage: true },
+  rampage_rook: { name: '돌진룩', desc: '이동 경로의 적 기물도 제거', rampage: true },
   sacred_queen: { name: '성스러운퀸', desc: '배치 시 인접 아군 강화', sacred: true }
 };
 
