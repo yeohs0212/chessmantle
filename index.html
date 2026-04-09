@@ -644,10 +644,14 @@ function showRetryScreen(reason) {
   const d=document.createElement('div');d.className='overlay';
   
   // 오늘 날짜 구하기
+  // 오늘 날짜 구하기 (YYYY.MM.DD 포맷)
   const todayDate = new Date();
-  const dateStr = `${todayDate.getMonth()+1}/${todayDate.getDate()}`;
+  const yyyy = todayDate.getFullYear();
+  const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(todayDate.getDate()).padStart(2, '0');
+  const dateStr = `${yyyy}.${mm}.${dd}`;
   
-  // 공유할 텍스트 만들기 (현재까지의 결과)
+  // 공유할 텍스트 만들기
   let shareText = `♟️ 체스 로그라이크 데일리 (${dateStr})\n`;
   for(let i=0; i<3; i++) {
       if(i < stage-1) shareText += `🟩 Stage ${i+1}: ${stageTurnRecords[i]}턴\n`;
