@@ -334,13 +334,16 @@ function initBoard(){
   board[60]={type:'king',side:'my'};board[56]={type:'rook',side:'my'};board[63]={type:'rook',side:'my'};
   board[51]={type:'pawn',side:'my'};board[52]={type:'pawn',side:'my'};board[53]={type:'pawn',side:'my'};
 
+  // 1. 적 킹 랜덤 배치 (맨 윗줄 0~7칸 중 하나에 무작위로)
   const enemyKingCol = Math.floor(seededRandom() * 8);
-  board[enemyKingCol] = {type:'king', side:'enm'};
+  const enemyKingIdx = enemyKingCol; // 킹의 위치 인덱스
+  board[enemyKingIdx] = {type:'king', side:'enm'};
 
   const budgets = [0, 14, 21, 30]; 
   let budget = budgets[stage] || 30;
   let enemyPieces = [];
 
+  // 기본 폰(방패막이) 4개는 확정 지급
   for(let i=0; i<4; i++) { enemyPieces.push('pawn'); budget -= 1; }
 
   const types = [
@@ -359,15 +362,33 @@ function initBoard(){
     budget -= pick.cost;
   }
 
+  // 🌟 2. 적 킹 주변 방어막(호위) 우선 배치 로직
+  // 킹의 앞, 왼쪽 앞, 오른쪽 앞 칸을 구합니다.
+  let guardCells = [enemyKingIdx + 8]; // 바로 앞칸
+  if (enemyKingCol > 0) guardCells.push(enemyKingIdx + 7); // 왼쪽 앞 대각선
+  if (enemyKingCol < 7) guardCells.push(enemyKingIdx + 9); // 오른쪽 앞 대각선
+
+  // 방패막이용 폰들을 먼저 호위 칸에 배치합니다.
+  guardCells.forEach(cellIdx => {
+      const pawnIndex = enemyPieces.indexOf('pawn');
+      if (pawnIndex !== -1) {
+          board[cellIdx] = {type: 'pawn', side: 'enm'};
+          enemyPieces.splice(pawnIndex, 1); // 장바구니에서 폰 제거
+      }
+  });
+
+  // 3. 남은 빈칸 목록 만들기 (킹과 방금 배치한 호위 폰 자리는 제외)
   let availableCells = [];
   for(let i=0; i<32; i++){
-    if(i !== enemyKingCol) availableCells.push(i);
+    if(!board[i]) availableCells.push(i);
   }
   shuf(availableCells); 
 
+  // 4. 남은 기물들을 무작위 빈칸에 배치
   enemyPieces.forEach(piece => {
      let targetCell;
      if(piece === 'pawn') {
+         // 남은 폰은 1~2번째 줄에 우선 배치
          let pawnIdx = availableCells.findIndex(c => c >= 8 && c <= 23);
          if(pawnIdx !== -1) targetCell = availableCells.splice(pawnIdx, 1)[0];
          else targetCell = availableCells.pop(); 
