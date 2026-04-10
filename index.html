@@ -205,6 +205,7 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
     <div class="panel" style="margin-bottom:9px">
       <div class="ptitle">적 정보</div>
       <div class="stat-row"><span>기물 수</span><span class="stat-val danger" id="enm-count">-</span></div>
+      <div class="stat-row"><span>행동 패턴</span><span class="stat-val" id="enm-pattern">기본</span></div>
       <div class="stat-row"><span>AI 깊이</span><span class="stat-val" id="ai-depth">depth 2</span></div>
       <div class="stat-row"><span>상태</span><span class="stat-val" id="check-state">-</span></div>
     </div>
@@ -309,7 +310,7 @@ let kingPerks={};
 // 데일리 기록용
 let currentStageTurns = 0;
 let stageTurnRecords = [0, 0, 0]; 
-
+let enemyTurnCount = 0; // 🌟 추가: 적의 행동 턴 수를 세는 변수
 function shuf(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(seededRandom()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}}
 
 function makeCard(type,ability=null){ return {type, ability}; }
@@ -554,6 +555,23 @@ function updateCounts(){
 function updateInfo(){
   document.getElementById('enm-count').textContent=board.filter(p=>p?.side==='enm').length+'개';
   document.getElementById('stage-badge').textContent='Stage '+stage+' / 3';
+  
+  const currentDepth = stage === 1 ? 2 : stage === 2 ? 3 : 4;
+  document.getElementById('ai-depth').textContent='depth '+currentDepth;
+
+  // 🌟 적 행동 패턴(3턴마다 2회 행동) 경고 UI 업데이트
+  let patternStr = '기본 (1회 행동)';
+  if (stage >= 2) {
+      const turnsLeft = 3 - (enemyTurnCount % 3);
+      if (turnsLeft === 1) patternStr = '⚠️ 다음 턴 2회 행동!';
+      else patternStr = `기본 (${turnsLeft}턴 뒤 2회)`;
+  }
+  const elPattern = document.getElementById('enm-pattern');
+  if(elPattern) {
+      elPattern.textContent = patternStr;
+      elPattern.className = 'stat-val' + (patternStr.includes('⚠️') ? ' danger' : '');
+  }
+
   const ci=isCheck(board,'my'),ce=isCheck(board,'enm');
   const el=document.getElementById('check-state');
   el.textContent=ci?'내 킹 체크!':ce?'적 킹 체크!':'-';
@@ -619,7 +637,15 @@ function renderBoard(){
     }
     if(i===selCell)cell.classList.add('sel');
     if(validMoves.includes(i)){if(p?.side==='enm')cell.classList.add('vc');else cell.classList.add('vm');}
-    if(selCard!==null&&!p&&Math.abs(r-mkr)<=(1+(kingPerks.extraSummon||0))&&Math.abs(c-mkc)<=(1+(kingPerks.extraSummon||0))&&i!==mki)cell.classList.add('vm');
+    
+    // 🌟 기물 소환 가능 표시 로직 (여기에 소환 시 체크가 해제되는지 검증)
+    if(selCard!==null&&!p&&Math.abs(r-mkr)<=(1+(kingPerks.extraSummon||0))&&Math.abs(c-mkc)<=(1+(kingPerks.extraSummon||0))&&i!==mki){
+       const nb = board.map(x=>x?{...x}:null);
+       nb[i] = {type:hand[selCard].type, side:'my', ability:hand[selCard].ability||null};
+       if(!isCheck(nb, 'my')) { // 방어가 될 때만 초록색 점 표시
+           cell.classList.add('vm');
+       }
+    }
     cell.onclick=()=>handleClick(i); el.appendChild(cell);
   }
 }
@@ -685,6 +711,16 @@ function handleClick(i){
     const summonRange=1+(kingPerks.extraSummon||0);
     if(!board[i]&&Math.abs(r-kr)<=summonRange&&Math.abs(c-kc)<=summonRange&&i!==mki){
       if(ap<=0){setPhase('행동력이 없습니다.');return;}
+      
+      // 🌟 체크 방어 검증 로직 추가 (소환 시뮬레이션)
+      const nb = board.map(x=>x?{...x}:null);
+      nb[i] = {type:hand[selCard].type, side:'my', ability:hand[selCard].ability||null};
+      if(isCheck(nb, 'my')) {
+          setPhase('⚠️ 체크 상태! 해당 위치에 기물을 소환해도 방어할 수 없습니다.');
+          selCard=null; renderHand(); renderBoard();
+          return; // 소환 취소
+      }
+
       if(confirmMode){pending={type:'place',cardIdx:selCard,cellIdx:i};renderBoard();showCBar();setPhase(`${cardDisplayName(hand[selCard])}을 ${toNot(i)}에 — 확인?`);}
       else{const ci=selCard;selCard=null;doExecPlace(ci,i);} return;
     }
@@ -953,12 +989,15 @@ function startStage(){
   initBoard();
   const initDraw=nextStartDraw;nextStartDraw=3;
   for(let i=0;i<initDraw;i++){if(deck.length){const c=deck.shift();hand.push(c);}}
+  
+  enemyTurnCount = 0; // 🌟 스테이지가 시작되면 적 행동 카운트 초기화
+  
   renderBoard();renderHand();updateInfo();updateCounts();
   turn='player';ap=MAX_AP;inCheck=false;lf=-1;lt=-1;
   selCard=null;selCell=null;validMoves=[];boardHistory=[];
   
   currentStageTurns = 0; 
-  document.getElementById('current-turn').textContent = '0턴'; // 스테이지 시작 시 0턴으로 표시
+  document.getElementById('current-turn').textContent = '0턴'; 
   
   renderAP(); updateKingPerksUI();
   document.getElementById('log').innerHTML=`<span class="sys">Stage ${stage} 시작. 카드 ${initDraw}장 드로우.</span>`;
@@ -970,22 +1009,21 @@ async function endTurn(){
   setPhase('적이 생각하는 중...'); renderHand();renderBoard();
   await new Promise(r=>setTimeout(r,350));
 
-  const twice=stage>=2&&seededRandom()<0.3; 
-  const mCnt=twice?2:1;
+  enemyTurnCount++; // 🌟 적 턴 카운트 증가
+  
+  // 🌟 2스테이지부터 정확히 3턴마다 2회 행동 발동
+  const twice = stage >= 2 && (enemyTurnCount % 3 === 0); 
+  const mCnt = twice ? 2 : 1;
 
   for(let m=0;m<mCnt;m++){
     const mv=bestMove(board); if(!mv)break;
-    const target=board[mv.to]; if(target?.side==='my'&&target?.type==='king'){ addLog('적 AI: 킹 포획 시도 차단.','sys');break; }
+    const target=board[mv.to]; if(target?.side==='my'&&target?.type==='king'){ addLog('적 AI: 킹 직접 포획 시도 차단.','sys');break; }
     
     const fp=board[mv.from];
     let cap=board[mv.to];
     let isEP = false;
     
-    // 🌟 적 AI의 앙파상 포획 판정
-    if (fp.type === 'pawn' && mv.to === board.epTarget) {
-        cap = board[mv.to - 8];
-        isEP = true;
-    }
+    if (fp.type === 'pawn' && mv.to === board.epTarget) { cap = board[mv.to - 8]; isEP = true; }
 
     lf=mv.from;lt=mv.to;board=applyMv(board,mv);
     const sym=SYM.enm[fp.type]||'?';
