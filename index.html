@@ -237,6 +237,9 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
 let dailySeed = 0;
 let currentSeed = 0;
 
+/* ══════════════════════════════════
+   1. 데일리 시드 시스템 (Mulberry32)
+══════════════════════════════════ */
 function initDailySeed() {
   const today = new Date();
   const yyyy = today.getFullYear();
@@ -244,6 +247,12 @@ function initDailySeed() {
   const dd = String(today.getDate()).padStart(2, '0');
   dailySeed = parseInt(`${yyyy}${mm}${dd}`, 10);
   currentSeed = dailySeed;
+
+  // 🌟 타이틀(h1) 옆에 오늘의 날짜를 예쁘게 추가하는 코드
+  const titleEl = document.querySelector('h1');
+  if (titleEl) {
+      titleEl.innerHTML = `CHESSMANTLE <span style="font-size:12px; color:var(--text-dim); letter-spacing:1px; vertical-align:middle; margin-left:6px;">(${yyyy}.${mm}.${dd})</span>`;
+  }
 }
 
 function seededRandom() {
