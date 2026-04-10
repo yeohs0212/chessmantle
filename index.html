@@ -127,7 +127,12 @@ h1{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.12em;text-al
 .overlay-box h2{font-size:20px;color:var(--gold);margin-bottom:8px;}
 .overlay-box p{font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.6;}
 .help-text{font-size:11px;color:var(--text-dim);line-height:1.95;}
-
+/* ── 오버레이 보드 엿보기(Peek) 스타일 ── */
+.overlay.peek { background: transparent; pointer-events: none; }
+.overlay.peek .overlay-box { display: none; }
+.overlay.peek .peek-btn { display: block; pointer-events: auto; }
+.peek-btn { display: none; position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); padding: 12px 24px; background: var(--surface); border: 1.5px solid var(--gold); border-radius: 30px; color: var(--gold-light); font-weight: bold; font-family: 'Cinzel', serif; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.8); transition: background 0.2s; }
+.peek-btn:hover { background: var(--surface2); }
 /* ── 반응형 (태블릿/모바일) ── */
 @media(max-width:860px){
   .game-wrap{grid-template-columns:1fr;gap:10px;}
@@ -1083,6 +1088,7 @@ function saveDailyResult(state) {
 }
 
 // 2. 클리어 시 띄워줄 공유 화면 (최고 기록 표시 + 기록 단축 버튼)
+// 클리어 시 띄워줄 공유 화면
 function showShareScreen(state, reason = "") {
   document.querySelectorAll('.overlay,.modal-bd').forEach(e=>e.remove());
   const d=document.createElement('div');d.className='overlay';
@@ -1092,17 +1098,15 @@ function showShareScreen(state, reason = "") {
   const todayDate = new Date();
   const dateStr = `${todayDate.getMonth()+1}/${todayDate.getDate()}`;
 
-  // 로컬 스토리지에서 최고 기록 가져오기
   const saved = JSON.parse(localStorage.getItem('chessRogueDaily') || '{}');
   let displayTurns = stageTurnRecords;
   let totalTurns = 0;
 
   if(isWin && saved.date === dailySeed.toString() && saved.state === 'won') {
-      displayTurns = saved.turns; // 갱신된 최고 기록으로 표시
+      displayTurns = saved.turns;
   }
   totalTurns = displayTurns.reduce((a,b)=>a+b, 0);
 
-  // 공유 텍스트 만들기
   let shareText = `♟️ 체스 로그라이크 데일리 (${dateStr})\n`;
   if(isWin) {
       shareText += `🏆 최고 기록: 총 ${totalTurns}턴\n`;
@@ -1116,18 +1120,59 @@ function showShareScreen(state, reason = "") {
           else shareText += `⬛ Stage ${i+1}: 미도달\n`;
       }
   }
-  // ★ 주의: 아래 링크를 본인의 실제 깃허브 게임 주소로 꼭 바꿔주세요!
+  shareText += `\n[도전하러 가기] -> https://yeohs0212.github.io/chessmantle/`; 
 
-  d.innerHTML=`<div class="overlay-box" style="max-width:320px; width:90%;">
+  d.innerHTML=`
+  <div class="overlay-box" style="max-width:320px; width:90%;">
       <h2>${title}</h2>
       ${reason ? `<p style="color:var(--gold); font-size:12px; margin-bottom:8px;">${reason}</p>` : ''}
       ${isWin ? `<p style="color:var(--text-dim); margin-bottom:10px;">더 적은 턴 수로 클리어할 수 있을까요?</p>` : '<p>내일 자정에 새로운 배치가 열립니다.</p>'}
       
       <textarea id="share-txt" style="width:100%;height:120px;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:8px;font-size:11px;margin-bottom:12px;border-radius:6px;resize:none" readonly>${shareText}</textarea>
       
+      <button class="btn" onclick="togglePeek(true)" style="margin-bottom:8px; border-color:var(--text-faint); color:var(--text-dim);">현재 보드판 보기 👁️</button>
+      
       <button class="btn info-btn" onclick="copyShare()" style="margin-bottom:8px; border-color:var(--blue-light); color:var(--blue-light);">최고 기록 복사하기 📋</button>
       <button class="btn primary" onclick="restart()">${isWin ? '기록 단축 재도전 🔄' : '처음부터 다시 도전 🔄'}</button>
-  </div>`;
+  </div>
+  <button class="peek-btn" onclick="togglePeek(false)">결과창으로 돌아가기 🔙</button>
+  `;
+  document.body.appendChild(d);
+}
+
+// 실패 시 띄워줄 재도전 화면
+function showRetryScreen(reason) {
+  document.querySelectorAll('.overlay,.modal-bd').forEach(e=>e.remove());
+  const d=document.createElement('div');d.className='overlay';
+  
+  const todayDate = new Date();
+  const yyyy = todayDate.getFullYear();
+  const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(todayDate.getDate()).padStart(2, '0');
+  const dateStr = `${yyyy}.${mm}.${dd}`;
+  
+  let shareText = `♟️ 체스 로그라이크 데일리 (${dateStr})\n`;
+  for(let i=0; i<3; i++) {
+      if(i < stage-1) shareText += `🟩 Stage ${i+1}: ${stageTurnRecords[i]}턴\n`;
+      else if(i === stage-1) shareText += `🟥 Stage ${i+1}: 패배\n`;
+      else shareText += `⬛ Stage ${i+1}: 미도달\n`;
+  }
+  shareText += `\n[도전하러 가기] -> https://yeohs0212.github.io/chessmantle/`; 
+
+  d.innerHTML=`
+  <div class="overlay-box" style="max-width:320px; width:90%;">
+      <h2>💀 게임 오버</h2>
+      <p style="color:var(--red); font-size:12px; margin-bottom:8px;">${reason}</p>
+      
+      <textarea id="share-txt" style="width:100%;height:110px;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:8px;font-size:11px;margin-bottom:12px;border-radius:6px;resize:none" readonly>${shareText}</textarea>
+      
+      <button class="btn" onclick="togglePeek(true)" style="margin-bottom:8px; border-color:var(--text-faint); color:var(--text-dim);">현재 보드판 보기 👁️</button>
+
+      <button class="btn info-btn" onclick="copyShare()" style="margin-bottom:8px; border-color:var(--blue-light); color:var(--blue-light);">현재 기록 복사하기 📋</button>
+      <button class="btn primary" onclick="restart()">처음부터 다시 도전 🔄</button>
+  </div>
+  <button class="peek-btn" onclick="togglePeek(false)">결과창으로 돌아가기 🔙</button>
+  `;
   document.body.appendChild(d);
 }
 
@@ -1142,7 +1187,14 @@ function copyShare() {
 if (!checkDailyLock()) {
   startStage();
 }
-
+// 🌟 보드판 엿보기 토글 함수
+function togglePeek(isPeeking) {
+  const overlay = document.querySelector('.overlay');
+  if (overlay) {
+    if (isPeeking) overlay.classList.add('peek');
+    else overlay.classList.remove('peek');
+  }
+}
 </script>
 </body>
 </html>
